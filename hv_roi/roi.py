@@ -6,7 +6,6 @@ import panel as pn
 from panel.pane.holoviews import HoloViews
 from streamz.sources import Source
 import threading
-import time
 hv.extension('bokeh')
 
 
@@ -43,7 +42,6 @@ class from_hv_selection(Source):
 
     def cb(self, *args):
         self.data.append((self.stream.x, self.stream.y))
-        self.loop.add_callback(self.emitter)
 
     async def emitter(self):
         out = self.emit(self.data.pop(0), asynchronous=True)
@@ -55,14 +53,22 @@ class from_hv_selection(Source):
         return rasterize(self.stream.element, target=img, aggregator='any',
                          dynamic=False)
 
+    def start(self):
+        super().start()
+        self.server = pn.io.server.get_server(self.plot, start=False, show=True,
+                                              loop=self.loop)
+        self.server.start()
+
     def stop(self, *args):
         e.set()
         super().stop()
-        self.loop.stop()
 
     async def run(self):
-        self.server = pn.io.server.get_server(self.plot, start=False, show=True,
-                                              loop=self.loop)
+        while not self.stopped:
+             if self.data:
+                 await self.emit(self.data.pop(0), asynchronous=True)
+             else:
+                 await asyncio.sleep(0.01)
 
 
 if __name__ == "__main__":
