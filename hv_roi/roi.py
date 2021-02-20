@@ -6,13 +6,15 @@ import panel as pn
 from panel.pane.holoviews import HoloViews
 from streamz.sources import Source
 import threading
+import queue
+import tornado.ioloop
 hv.extension('bokeh')
 
 
 class from_hv_selection(Source):
     def __init__(self, im, xcoords=None, ycoords=None, zcoords=None, scale="linear",
                  limits="percentile", vmin=5, vmax=95, colorbar=True,
-                 cmap="gray", axes_names=None, select_type="box"):
+                 cmap="gray", axes_names=None, select_type="box", **kwargs):
 
         nx, ny, *more = im.shape[::-1]
         xcoords = xcoords or np.arange(nx)
@@ -37,16 +39,11 @@ class from_hv_selection(Source):
         done.param.watch(self.stop, 'clicks')
         pl = HoloViews(self.out * self.polys)
         self.plot = pn.Column(pl, done)
-        self.data = []
-        super().__init__(asynchronous=True)
+        self.data = queue.Queue()
+        super().__init__(**kwargs)
 
     def cb(self, *args):
-        self.data.append((self.stream.x, self.stream.y))
-
-    async def emitter(self):
-        out = self.emit(self.data.pop(0), asynchronous=True)
-        if not out.done():
-            await asyncio.gather(out)
+        self.data.put((self.stream.x, self.stream.y))
 
     def mask(self):
         img = self.out.last if isinstance(self.out, hv.HoloMap) else self.out
@@ -55,30 +52,32 @@ class from_hv_selection(Source):
 
     def start(self):
         super().start()
+        self.server_loop = tornado.ioloop.IOLoop()
         self.server = pn.io.server.get_server(self.plot, start=False, show=True,
-                                              loop=self.loop)
+                                              loop=self.server_loop)
+        thr = threading.Thread(target=self.server_loop.start)
+        thr.daemon = True
+        thr.start()
         self.server.start()
 
     def stop(self, *args):
-        e.set()
         super().stop()
+        self.loop.stop()
 
-    async def run(self):
-        while not self.stopped:
-             if self.data:
-                 await self.emit(self.data.pop(0), asynchronous=True)
-             else:
-                 await asyncio.sleep(0.01)
+    async def _run(self):
+        try:
+            out = self.data.get_nowait()
+            await self.emit(out, asynchronous=True)
+        except queue.Empty:
+            await asyncio.sleep(0.01)
 
 
 if __name__ == "__main__":
     e = threading.Event()
     data = np.random.random((10, 10))
-    s = from_hv_selection(data, select_type="tap")
+    loop = tornado.ioloop.IOLoop()
+    s = from_hv_selection(data, select_type="tap", loop=loop, asynchronous=True)
     s = s.buffer(20).rate_limit(interval=1)
     s.sink(print)
     s.start()
-    try:
-        e.wait()
-    except KeyboardInterrupt:
-        pass
+    loop.start()
