@@ -63,6 +63,7 @@ class from_hv_selection(Source):
     def stop(self, *args):
         super().stop()
         self.loop.stop()
+        self.server_loop.add_callback(self.server_loop.stop)
 
     async def _run(self):
         try:
@@ -81,3 +82,39 @@ if __name__ == "__main__":
     s.sink(print)
     s.start()
     loop.start()
+
+
+class stream_tester_pure():
+    def __init__(self):
+        im = np.random.random((10, 10))
+        nx, ny, *more = im.shape[::-1]
+        xcoords = np.arange(nx)
+        ycoords = np.arange(ny)
+        self.polys = hv.Polygons([]).opts(alpha=0.1)
+        self.stream = hv.streams.Tap(source=self.polys)
+        data = (xcoords, ycoords, im)
+        axes_names = ["x", "y"]
+        self.ds = hv.Dataset(data, axes_names, "Data")
+        self.out = self.ds.to(hv.Image, axes_names[-2:]).opts(
+            cmap="gray", height=400, width=int(400 * len(xcoords) / len(ycoords))) #, cnorm=scale)
+        self.stream.param.watch(self.cb, 'x')
+        done = pn.widgets.Button(name="done")
+        done.param.watch(self.stop, 'clicks')
+        pl = HoloViews(self.out * self.polys)
+        self.plot = pn.Column(pl, done)
+        self.data = queue.Queue()
+
+    def cb(self, *args):
+        print((self.stream.x, self.stream.y))
+
+    def stop(self, *args):
+        self.server.stop()
+        self.server._loop.stop()
+
+    def start(self):
+        try:
+            self.server = pn.io.server.get_server(self.plot, start=False, show=True)
+            self.server.start()
+            self.server._loop.start()
+        except KeyboardInterrupt:
+            pass
