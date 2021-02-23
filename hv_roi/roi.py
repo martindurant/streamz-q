@@ -21,7 +21,7 @@ class from_hv_selection(Source):
         ycoords = ycoords or np.arange(ny)
         self.polys = hv.Polygons([]).opts(alpha=0.1)
         cls = {"box": hv.streams.BoxEdit,
-               "tap": hv.streams.Tap}
+               "tap": hv.streams.PointerXY}
         self.stream = cls[select_type](source=self.polys)
         if more:
             zcoords = zcoords or np.arange(more[0])
@@ -77,7 +77,7 @@ if __name__ == "__main__":
     data = np.random.random((10, 10))
     loop = tornado.ioloop.IOLoop()
     s = from_hv_selection(data, select_type="tap", loop=loop, asynchronous=True)
-    s = s.buffer(20).rate_limit(interval=1)
+    s = s.timed_window(1).map(len)
     s.sink(print)
     s.start()
     loop.start()

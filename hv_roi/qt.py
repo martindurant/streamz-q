@@ -55,5 +55,4 @@ if __name__ == '__main__':
     s = from_q(q)
     s.timed_window(1).map(len).sink(print)
     s.start()
-    print(threading.enumerate())
     main_widget(q)
