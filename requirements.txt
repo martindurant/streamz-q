@@ -1,5 +1,1 @@
-holoviews
-panel
-hvplot
-datashader
-numpy
+streamz

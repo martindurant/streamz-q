@@ -8,6 +8,8 @@ class from_q(streamz.Source):
 
     Allows mixing of another event loop, for example pyqt, on another thread.
 
+    Note that, by default, a streamz.Source such as this one will start
+    an event loop in a new thread, unless otherwise specified.
     """
 
     def __init__(self, q, sleep_time=0.01, **kwargs):
