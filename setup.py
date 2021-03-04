@@ -11,7 +11,7 @@ with open(os.path.join(here, "README.md"), encoding="utf-8") as f:
 setup(
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
-    name="hv_roi",
+    name="streamz-q",
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
@@ -30,12 +30,12 @@ setup(
     description="ROI selector",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="http://github.com/martindurant/ROI",
+    url="http://github.com/martindurant/streamz-q",
     maintainer="Martin Durant",
     maintainer_email="mdurant@anaconda.com",
     license="BSD",
     keywords="file",
-    packages=["hv_roi"],
+    packages=["streamz_q"],
     python_requires=">=3.6",
     install_requires=open("requirements.txt").read().strip().split("\n"),
     zip_safe=False,

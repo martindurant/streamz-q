@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QApplication, QWidget
 import queue
-from hv_roi.plugin import from_q
+from streamz_q.plugin import from_q
 
 
 class QueueWidget(QWidget):

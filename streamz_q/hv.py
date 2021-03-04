@@ -4,7 +4,7 @@ import panel as pn
 from panel.pane.holoviews import HoloViews
 import queue
 import tornado.ioloop
-from hv_roi.plugin import from_q
+from streamz_q.plugin import from_q
 hv.extension('bokeh')
 
 
