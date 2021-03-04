@@ -21,8 +21,10 @@ class hv_widget:
         self.Time = hv.streams.Stream.define('Time', time=1.0)
         self.counter = 0
         self.dmap = hv.DynamicMap(self._dmap, streams=[self.Time()])
-        pl = HoloViews(self.polys *
-                       self.dmap.opts(height=400, width=400, alpha=0.1, cmap='hot'))
+        pl = HoloViews((self.polys *
+                       self.dmap.opts(height=400, width=400, alpha=0.1, cmap='hot')).opts(
+            xlim=(0, 100), ylim=(0, 100)
+        ))
         self.plot = pn.Column(pl, done)
         self.q = q
 
@@ -30,7 +32,7 @@ class hv_widget:
         self.q.put((self.stream.x, self.stream.y))
 
     def _dmap(self, **args):
-        return hv.Image(self.overlay, bounds=(0.5, 0.5, 99.5, 99.5))
+        return hv.Image(self.overlay, bounds=(0, 0, 100, 100))
 
     def set_overlay(self, data):
         if data:
