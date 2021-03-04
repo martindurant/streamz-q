@@ -1,2 +1,3 @@
-# ROI
-ROI selection tool using holoviews
+# streamz-q
+
+Plugin for streamz to take events from an arbitrary thread.

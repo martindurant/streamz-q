@@ -12,26 +12,34 @@ class hv_widget:
     """Simple holoviews plot widget passing move events to a given Queue"""
 
     def __init__(self, q):
-        im = np.random.random((10, 10))
-        nx, ny = im.shape
-        xcoords = np.arange(nx)
-        ycoords = np.arange(ny)
         self.polys = hv.Polygons([]).opts(alpha=0.1)
         self.stream = hv.streams.PointerXY(source=self.polys)
-        data = (xcoords, ycoords, im)
-        axes_names = ["x", "y"]
-        self.ds = hv.Dataset(data, axes_names, "Data")
-        self.out = self.ds.to(hv.Image, axes_names[-2:]).opts(
-            height=400, width=int(400 * len(xcoords) / len(ycoords)))
         self.stream.param.watch(self.cb, 'x')
+        self.overlay = np.zeros((100, 100))
         done = pn.widgets.Button(name="done")
         done.param.watch(self.stop, 'clicks')
-        pl = HoloViews(self.out * self.polys)
+        self.Time = hv.streams.Stream.define('Time', time=1.0)
+        self.counter = 0
+        self.dmap = hv.DynamicMap(self._dmap, streams=[self.Time()])
+        pl = HoloViews(self.polys *
+                       self.dmap.opts(height=400, width=400, alpha=0.1, cmap='hot'))
         self.plot = pn.Column(pl, done)
         self.q = q
 
     def cb(self, *args):
         self.q.put((self.stream.x, self.stream.y))
+
+    def _dmap(self, **args):
+        return hv.Image(self.overlay, bounds=(0.5, 0.5, 99.5, 99.5))
+
+    def set_overlay(self, data):
+        if data:
+            mask = list(zip(*data))
+            mask = 100 - np.array(mask[1], dtype=int), np.array(mask[0], dtype=int)
+            self.overlay[mask] += 1
+            counter = self.counter
+            self.server_loop.add_callback(lambda: self.dmap.event(time=counter))
+            self.counter += 1
 
     def stop(self, *args):
         self.server.stop()
@@ -48,7 +56,8 @@ if __name__ == "__main__":
     q = queue.Queue()
     widget = hv_widget(q)
     s = from_q(q)
-    s = s.timed_window(1).map(len)
-    s.sink(print)
+    s = s.timed_window(1)
+    s.sink(widget.set_overlay)
+    s.map(len).sink(print)
     s.start()
     widget.start()
