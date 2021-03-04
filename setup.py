@@ -24,7 +24,7 @@ setup(
     ],
     entry_points={
         "streamz.sources": [
-            "from_q = hv_roi.plugin:from_q"
+            "from_q = streamz_q.plugin:from_q"
         ],
     },
     description="ROI selector",
